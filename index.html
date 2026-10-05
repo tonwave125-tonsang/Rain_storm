@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Simple Mobile AR Lab - Thunderstorm Animation V2</title>
+
+  <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.7/aframe/build/aframe-ar.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+    }
+    #top-panel {
+      position: fixed;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      width: min(92vw, 560px);
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.68);
+      color: #fff;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.4;
+      backdrop-filter: blur(4px);
+    }
+    #controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 18px;
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 12px;
+    }
+    button {
+      min-width: 145px;
+      min-height: 48px;
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    #show-button { background: #fff; color: #111; }
+    #status-button { background: #ffd54f; color: #111; }
+    .hint { display:block; margin-top:4px; font-size:12px; opacity:.82; }
+  </style>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const marker = document.querySelector('#hiro-marker');
+      const stormGroup = document.querySelector('#storm-group');
+      const darkClouds = document.querySelectorAll('.dark-cloud');
+      const rainGroup = document.querySelector('#rain-group');
+      const lightning = document.querySelector('#lightning');
+      const arLabel = document.querySelector('#ar-label');
+      const topPanel = document.querySelector('#top-panel');
+      const showButton = document.querySelector('#show-button');
+      const statusButton = document.querySelector('#status-button');
+
+      let visible = true;
+      let warning = true;
+      let lightningTimer = null;
+
+      function scheduleLightningFlash() {
+        clearTimeout(lightningTimer);
+        const delay = 900 + Math.random() * 1700;
+        lightningTimer = setTimeout(() => {
+          if (warning && visible) {
+            lightning.setAttribute('visible', true);
+            setTimeout(() => lightning.setAttribute('visible', false), 100);
+            setTimeout(() => lightning.setAttribute('visible', true), 180);
+            setTimeout(() => lightning.setAttribute('visible', false), 320);
+          }
+          scheduleLightningFlash();
+        }, delay);
+      }
+      scheduleLightningFlash();
+
+      marker.addEventListener('markerFound', () => {
+        topPanel.innerHTML = 'พบ Hiro Marker แล้ว — เมฆฝนเคลื่อนไหวพร้อมฝนและสายฟ้า<span class="hint">ลองกดเปลี่ยนสถานะด้านล่าง</span>';
+      });
+
+      marker.addEventListener('markerLost', () => {
+        topPanel.innerHTML = 'เล็งกล้องไปที่ Hiro Marker<span class="hint">ให้เห็นกรอบดำครบทั้งสี่ด้านและมีแสงเพียงพอ</span>';
+      });
+
+      showButton.addEventListener('click', () => {
+        visible = !visible;
+        stormGroup.setAttribute('visible', visible);
+        if (!visible) lightning.setAttribute('visible', false);
+        showButton.textContent = visible ? 'ซ่อนภาพพายุ' : 'แสดงภาพพายุ';
+      });
+
+      statusButton.addEventListener('click', () => {
+        warning = !warning;
+        if (warning) {
+          darkClouds.forEach(el => el.setAttribute('color', '#4b5563'));
+          rainGroup.setAttribute('visible', true);
+          arLabel.setAttribute('value', 'THUNDERSTORM WARNING\nHEAVY RAIN & LIGHTNING');
+          arLabel.setAttribute('color', '#ffe45c');
+          statusButton.textContent = 'เปลี่ยนเป็นเฝ้าระวัง';
+          topPanel.innerHTML = '⚠️ คำเตือนฝนฟ้าคะนอง<span class="hint">มีฝนตกหนักและฟ้าผ่า</span>';
+        } else {
+          darkClouds.forEach(el => el.setAttribute('color', '#9aa7b2'));
+          lightning.setAttribute('visible', false);
+          rainGroup.setAttribute('visible', true);
+          arLabel.setAttribute('value', 'WEATHER WATCH\nRAIN POSSIBLE');
+          arLabel.setAttribute('color', '#ffffff');
+          statusButton.textContent = 'เปิดคำเตือนพายุ';
+          topPanel.innerHTML = 'สถานะเฝ้าระวังสภาพอากาศ<span class="hint">ยังมีฝน แต่ยังไม่ใช่ระดับคำเตือนพายุ</span>';
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <div id="top-panel">
+    เล็งกล้องไปที่ Hiro Marker
+    <span class="hint">อนุญาตให้เว็บไซต์ใช้กล้องเมื่อเบราว์เซอร์ถาม</span>
+  </div>
+
+  <div id="controls">
+    <button id="show-button" type="button">ซ่อนภาพพายุ</button>
+    <button id="status-button" type="button">เปลี่ยนเป็นเฝ้าระวัง</button>
+  </div>
+
+  <a-scene
+    embedded
+    vr-mode-ui="enabled: false"
+    renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true"
+    arjs="sourceType: webcam; trackingMethod: best; debugUIEnabled: false"
+  >
+    <a-marker id="hiro-marker" preset="hiro" emitevents="true" smooth="true" smooth-count="8" smooth-tolerance="0.01" smooth-threshold="3">
+
+      <a-entity id="storm-group" position="0 0.05 0">
+
+        <!-- เมฆฝนแบบเป็นก้อนหลายชั้น -->
+        <a-entity id="cloud-group" position="0 0.62 0"
+          animation="property: position; from: -0.06 0.62 0; to: 0.06 0.66 0; dir: alternate; dur: 2600; loop: true; easing: easeInOutSine">
+
+          <a-sphere class="dark-cloud" position="-0.40 0 0.00" radius="0.22" color="#4b5563"></a-sphere>
+          <a-sphere class="dark-cloud" position="-0.18 0.07 0.01" radius="0.28" color="#4b5563"></a-sphere>
+          <a-sphere class="dark-cloud" position="0.08 0.10 0.02" radius="0.33" color="#4b5563"></a-sphere>
+          <a-sphere class="dark-cloud" position="0.34 0.03 0.00" radius="0.24" color="#4b5563"></a-sphere>
+          <a-sphere class="dark-cloud" position="0.00 -0.10 0.01" scale="1.10 0.55 0.72" radius="0.38" color="#4b5563"></a-sphere>
+
+          <!-- ชั้นเมฆสว่างด้านบน ช่วยให้ดูมีมิติ -->
+          <a-sphere position="-0.20 0.13 0.12" radius="0.14" color="#7d8790" opacity="0.85" material="transparent:true"></a-sphere>
+          <a-sphere position="0.12 0.18 0.13" radius="0.17" color="#6f7a84" opacity="0.80" material="transparent:true"></a-sphere>
+        </a-entity>
+
+        <!-- ฝนหลายเส้น ใต้ก้อนเมฆ -->
+        <a-entity id="rain-group" position="0 0.20 0.02">
+          <a-box position="-0.46 0.16 0" width="0.018" height="0.23" depth="0.012" rotation="0 0 -12" color="#64c7ff" animation="property: position; from: -0.46 0.22 0; to: -0.50 -0.35 0; dur: 620; delay: 0; loop: true; easing: linear"></a-box>
+          <a-box position="-0.32 0.10 0" width="0.018" height="0.21" depth="0.012" rotation="0 0 -12" color="#64c7ff" animation="property: position; from: -0.32 0.20 0; to: -0.37 -0.34 0; dur: 740; delay: 130; loop: true; easing: linear"></a-box>
+          <a-box position="-0.18 0.18 0" width="0.018" height="0.25" depth="0.012" rotation="0 0 -12" color="#8bd8ff" animation="property: position; from: -0.18 0.24 0; to: -0.24 -0.37 0; dur: 690; delay: 250; loop: true; easing: linear"></a-box>
+          <a-box position="-0.03 0.12 0" width="0.018" height="0.22" depth="0.012" rotation="0 0 -12" color="#64c7ff" animation="property: position; from: -0.03 0.20 0; to: -0.09 -0.36 0; dur: 650; delay: 80; loop: true; easing: linear"></a-box>
+          <a-box position="0.12 0.18 0" width="0.018" height="0.24" depth="0.012" rotation="0 0 -12" color="#8bd8ff" animation="property: position; from: 0.12 0.24 0; to: 0.06 -0.37 0; dur: 720; delay: 180; loop: true; easing: linear"></a-box>
+          <a-box position="0.27 0.13 0" width="0.018" height="0.22" depth="0.012" rotation="0 0 -12" color="#64c7ff" animation="property: position; from: 0.27 0.21 0; to: 0.21 -0.34 0; dur: 670; delay: 320; loop: true; easing: linear"></a-box>
+          <a-box position="0.42 0.16 0" width="0.018" height="0.24" depth="0.012" rotation="0 0 -12" color="#8bd8ff" animation="property: position; from: 0.42 0.23 0; to: 0.36 -0.36 0; dur: 760; delay: 220; loop: true; easing: linear"></a-box>
+          <a-box position="0.02 0.26 -0.04" width="0.014" height="0.18" depth="0.010" rotation="0 0 -12" color="#a6e3ff" animation="property: position; from: 0.02 0.28 -0.04; to: -0.04 -0.30 -0.04; dur: 600; delay: 390; loop: true; easing: linear"></a-box>
+          <a-box position="-0.25 0.27 -0.03" width="0.014" height="0.18" depth="0.010" rotation="0 0 -12" color="#a6e3ff" animation="property: position; from: -0.25 0.29 -0.03; to: -0.31 -0.31 -0.03; dur: 800; delay: 460; loop: true; easing: linear"></a-box>
+        </a-entity>
+
+        <!-- สายฟ้าทรงซิกแซก -->
+        <a-entity id="lightning" position="0.08 0.22 0.08" visible="false">
+          <a-box position="0.00 0.10 0" width="0.07" height="0.28" depth="0.03" rotation="0 0 18" color="#fff176" material="emissive:#ffeb3b; emissiveIntensity:1"></a-box>
+          <a-box position="-0.04 -0.08 0" width="0.07" height="0.26" depth="0.03" rotation="0 0 -24" color="#ffd54f" material="emissive:#ffc107; emissiveIntensity:1"></a-box>
+          <a-box position="0.01 -0.24 0" width="0.06" height="0.22" depth="0.03" rotation="0 0 22" color="#fff176" material="emissive:#ffeb3b; emissiveIntensity:1"></a-box>
+        </a-entity>
+
+        <!-- เงาพื้นน้ำ/ละอองฝน -->
+        <a-ring position="0 -0.18 0" rotation="-90 0 0" radius-inner="0.20" radius-outer="0.22" color="#6ec6ff" opacity="0.55" material="transparent:true" animation="property: scale; from: 0.6 0.6 0.6; to: 1.55 1.55 1.55; dur: 1400; loop: true; easing: easeOutQuad"></a-ring>
+        <a-ring position="0.30 -0.20 0.03" rotation="-90 0 0" radius-inner="0.10" radius-outer="0.12" color="#6ec6ff" opacity="0.45" material="transparent:true" animation="property: scale; from: 0.5 0.5 0.5; to: 1.45 1.45 1.45; dur: 1200; delay: 350; loop: true; easing: easeOutQuad"></a-ring>
+
+        <!-- ข้อความแยกออกจากก้อนเมฆ -->
+        <a-text id="ar-label"
+          value="THUNDERSTORM WARNING\nHEAVY RAIN & LIGHTNING"
+          position="0 1.15 0"
+          rotation="-90 0 0"
+          align="center"
+          width="2.45"
+          color="#ffe45c"
+          side="double"
+          animation="property: scale; from: 1 1 1; to: 1.035 1.035 1.035; dir: alternate; dur: 700; loop: true; easing: easeInOutSine">
+        </a-text>
+
+      </a-entity>
+    </a-marker>
+    <a-entity camera></a-entity>
+  </a-scene>
+</body>
+</html>
